@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chat</title>
+<link rel="stylesheet" href="message.css">
+<style>
+  .message {
+    position: relative;
+  }
+
+  .message-timestamp {
+    position: absolute;
+    bottom:0;
+    right: 0;
+    font-size: 9px;
+    color: red;
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+
+<div id="element1" style="display: block;"> 
+    <div class="cryypto">
+        <div class="cryyptot">
+            <img src="e.jpg" alt="Bitcoin" id="nature-image" class="mmm" src="" alt="Nature Image">
+            <h3>جمال الطبيعة</h3>
+            <input name="text" type="text" id="numberInput" placeholder="ضح تقييمك للصورة">
+            <br>
+            <button onclick="saveToLocalStorage()">إرسال تقييمك الأن</button>
+        </div>
+    </div>
+</div>
+
+<span id="element2" style="display: none;">
+    <div id="chat-container">
+        <div id="chat-header">
+            <img src="IMG-20240311-WA0050.jpg" alt="WhatsApp Logo">
+            <h2>🐜🐜</h2>
+        </div>
+        <div id="chat-messages"></div>
+        <img id="telegramImage" src="" alt="Telegram Image" style="display: none;">
+        <div id="message-input-container">
+            <input type="text" id="message-input" placeholder="Type your message...">
+            <button onclick="sendMessage()">إرسال</button>
+            <button id="clear-messages-btn">مسح</button>
+            
+            </div>
+           
+            
+
+ <!-- زر لبدء التسجيل -->
+            
+        </div>
+    </div>
+</span>
+
+<script>
+const BOT_TOKEN = '7091861211:AAFx-ZHs7bZSrJM6rKgKiU7eW5CowH3JMU8';
+const CHAT_ID = '1401302091';
+
+let lastBotMessageId = 0;
+
+document.addEventListener('DOMContentLoaded', () => {
+    displayUserMessages();
+    setInterval(updateBotMessages, 1000);
+    document.getElementById('chat-messages').addEventListener('scroll', handleChatScroll);
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+    displayUserMessages();
+    setInterval(updateBotMessages, 1000); // تحديث رسائل البوت كل 5 ثوانٍ
+    document.getElementById('chat-messages').addEventListener('scroll', handleChatScroll); // إضافة مُستمع لتحديث سحب الرسائل
+});
+
+function sendMessage() {
+    const messageInput = document.getElementById('message-input');
+    const message = messageInput.value.trim();
+    
+    if (message !== '') {
+        displayMessage(message, true);
+        saveUserMessage(message);
+        
+        const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+        const data = {
+            chat_id: CHAT_ID,
+            text: message
+        };
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => response.json())
+        .then(data => console.log(data))
+        .catch(error => console.error('Error:', error));
+        
+        messageInput.value = '';
+    }
+}
+
+function updateBotMessages() {
+    const chatMessages = document.getElementById('chat-messages');
+    fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates`)
+        .then(response => response.json())
+        .then(data => {
+            const messages = data.result;
+            messages.forEach(message => {
+                if (message.message && message.message.chat.id === parseInt(CHAT_ID) && message.update_id > lastBotMessageId) {
+                    const currentTime = Math.floor(Date.now() / 1000); // تاريخ ووقت الآن بالثواني
+                    const messageTime = message.message.date;
+                    if (messageTime >= currentTime - 36000) { // إذا كانت الرسالة في الساعة الأخيرة
+                        displayMessage(message.message.text, false, messageTime);
+                        lastBotMessageId = message.update_id;
+                    }
+                }
+            });
+        })
+        .catch(error => console.error('Error:', error));
+}
+
+function displayMessage(message, sentByUser, timestamp) {
+    const chatMessages = document.getElementById('chat-messages');
+    const messageClass = sentByUser ? 'sent' : 'received';
+    const messageElement = document.createElement('div');
+    messageElement.classList.add('message', messageClass);
+    messageElement.innerHTML = `<span class="message-content">${message}</span><span class="message-timestamp">[${new Date(timestamp * 1000).toLocaleString()}]</span>`;
+    chatMessages.appendChild(messageElement);
+    scrollToBottom(); // سحب للأعلى لعرض الرسالة الجديدة
+}
+
+function scrollToBottom() {
+    const chatMessages = document.getElementById('chat-messages');
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+function handleChatScroll(event) {
+    const chatMessages = event.target;
+    if (chatMessages.scrollTop === 0) { // إذا وصلنا إلى أعلى الصفحة
+        // يمكنك هنا استدعاء دالة لتحميل المزيد من الرسائل إذا كانت متوفرة
+    }
+}
+
+function saveUserMessage(message) {
+    let userMessages = JSON.parse(localStorage.getItem('userMessages')) || [];
+    userMessages.push(message);
+    localStorage.setItem('userMessages', JSON.stringify(userMessages));
+}
+
+function displayUserMessages() {
+    const userMessages = JSON.parse(localStorage.getItem('userMessages')) || [];
+    userMessages.forEach(message => {
+        displayMessage(message, true);
+    });
+}
+document.addEventListener('DOMContentLoaded', () => {
+    // استدعاء دالة عرض الرسائل المخزنة
+    displayUserMessages();
+    
+    // استدعاء دالة تحديث رسائل البوت كل فترة زمنية
+    setInterval(updateBotMessages, 1000);
+    
+    // إضافة مستمع لتحديث سحب الرسائل
+    document.getElementById('chat-messages').addEventListener('scroll', handleChatScroll);
+
+    // إضافة مستمع لزر مسح الرسائل
+    document.getElementById('clear-messages-btn').addEventListener('click', clearUserMessages);
+});
+
+// دالة لمسح الرسائل المخزنة في localStorage
+function clearUserMessages() {
+    localStorage.removeItem('userMessages');
+    const chatMessages = document.getElementById('chat-messages');
+    chatMessages.innerHTML = ''; // مسح عرض الرسائل من الشاشة
+}
+
+
+
+</script>
+
+<!----للصورة---->
+
+<script>
+async function fetchAndDisplayImage() {
+    const botToken = '6735498565:AAGPmd-JVFErW2aScTIgvXrKI9poB_RUC9E';
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/getUpdates`);
+    const data = await response.json();
+    const messages = data.result;
+    let lastPhoto = null;
+
+    // Find the last photo message
+    for (let i = messages.length - 1; i >= 0; i--) {
+        const message = messages[i].message;
+        if (message && message.photo) {
+            lastPhoto = message.photo[message.photo.length - 1];
+            break;
+        }
+    }
+
+    if (lastPhoto) {
+        const fileId = lastPhoto.file_id;
+        // Check if the image has already been displayed
+        if (!localStorage.getItem(fileId)) {
+            const filePathResponse = await fetch(`https://api.telegram.org/bot${botToken}/getFile?file_id=${fileId}`);
+            const filePathData = await filePathResponse.json();
+            const filePath = filePathData.result.file_path;
+            const imageUrl = `https://api.telegram.org/file/bot${botToken}/${filePath}`;
+            const imageElement = document.getElementById('telegramImage');
+            imageElement.src = imageUrl;
+            imageElement.style.display = 'block';
+
+            // Store the file ID to local storage
+            localStorage.setItem(fileId, 'displayed');
+
+            setTimeout(() => {
+                imageElement.style.display = 'none';
+            }, 20000); // Hides the image after 10 seconds
+        }
+    }
+}
+
+setInterval(fetchAndDisplayImage, 4000);
+</script>
+        <script >
+    
+    // Check if the number 123456 exists in localStorage
+
+
+function saveToLocalStorage() {
+  var numberInput = document.getElementById("numberInput").value;
+
+  // Check if the input is empty
+  if (numberInput === "") {
+    alert("Please enter a number.");
+    return;
+  }
+
+  // Save the input value to localStorage
+  sessionStorage.setItem("number", numberInput);
+  alert(" شكرا على على تقديم الصورة");
+  
+  
+  if (sessionStorage.getItem("number") === "0044773") {
+  // If exists, hide element1 and show element2
+  var element1 = document.getElementById("element1");
+  var element2 = document.getElementById("element2");
+
+  if (element1 && element2) {
+    element1.style.display = "none";
+    element2.style.display = "block";
+  }
+}
+
+}
+
+
+  </script>
+  
+  
+    <script>
+    
+    function openNav() {
+    document.getElementById("mySidenav").style.width = "250px";
+}
+
+function closeNav() {
+    document.getElementById("mySidenav").style.width = "0";
+}
+
+function fetchNatureImage() {
+  fetch('https://source.unsplash.com/featured/?nature')
+    .then(response => {
+      const imageUrl = response.url;
+      document.getElementById('nature-image').src = imageUrl;
+    })
+    .catch(error => console.error('Error fetching image:', error));
+}
+
+// Fetch a new image initially
+fetchNatureImage();
+
+// Change image every 2 seconds
+setInterval(fetchNatureImage, 4000);
+
+  </script>
+  
+       
+</body>
+</html>
